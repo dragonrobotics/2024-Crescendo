@@ -94,8 +94,12 @@ public class Intake extends SubsystemBase{
             
         }).until(notePresent()).withTimeout(5).finallyDo(() ->
         { 
-            intakePull.setVoltage(0);
+            stopIntake();
         });
+    }
+
+    public void stopIntake(){
+        intakePull.setVoltage(0);
     }
 
 }
