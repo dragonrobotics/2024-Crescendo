@@ -14,6 +14,8 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 public class Intake extends SubsystemBase{
     private DigitalInput beamBreak = new DigitalInput(1);
 
@@ -78,22 +80,31 @@ public class Intake extends SubsystemBase{
         return beamBreak.get();
     }
 
-    public Command runIntake()
+    public Command intakeNote()
     {
-        return run(() -> 
-        {
-            if(GetIntakePosition() == intakePosition.down)
-            {
-                intakePull.setVoltage(0.2);
-            }
-            if(GetIntakePosition() == intakePosition.up)
-            {
-                ChangeIntakePosition(intakePosition.down);
-            }
-            
-        }).until(()->{return notePresent();}).withTimeout(5).finallyDo(() ->
-        { 
+        if (notePresent())
+            return runOnce((()->{}));
+
+        return SetIntakePosition(intakePosition.down).andThen(runOnce(()->{
+            intakePull.setVoltage(0.2);
+        })).andThen(waitUntil(()->{
+            return notePresent();
+        })).andThen(
+            parallel(
+                SetIntakePosition(intakePosition.up),
+                runOnce(()->{stopIntake();})
+            )
+        ).finallyDo(()->{
             stopIntake();
+        });
+    }
+
+    public Command SetIntakePosition(intakePosition position)
+    {
+        return run(()->{
+            ChangeIntakePosition(position);
+        }).until(()->{
+            return GetIntakePosition() == position && IntakeStopped();
         });
     }
 
