@@ -10,7 +10,9 @@ import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import swervelib.parser.SwerveParser;
+import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import swervelib.SwerveDrive;
 
 public class Drivetrain extends SubsystemBase {
@@ -18,6 +20,7 @@ public class Drivetrain extends SubsystemBase {
     private SwerveDrive swerveDrive;
 
     public Drivetrain() {
+        swervelib.telemetry.SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
         File swerveJsonDirectory = new File(Filesystem.getDeployDirectory(), "swerve");
         try {
             swerveDrive = new SwerveParser(swerveJsonDirectory).createSwerveDrive(maximumSpeed);
@@ -27,22 +30,16 @@ public class Drivetrain extends SubsystemBase {
         }
     }
 
-    public Command getDriveCommand(DoubleSupplier translationX, DoubleSupplier translationY,
+    public Command getDriveCommand(DoubleSupplier translationY, DoubleSupplier translationX,
             DoubleSupplier angularRotation, boolean fieldRelative) {
         return run(() -> {
             double xSpeed = translationX.getAsDouble();
             double ySpeed = translationY.getAsDouble();
             double rSpeed = angularRotation.getAsDouble();
-            xSpeed = xSpeed * xSpeed * signum(xSpeed);
-            ySpeed = ySpeed * ySpeed * signum(ySpeed);
-            rSpeed = rSpeed * xSpeed * signum(rSpeed);
+            xSpeed = xSpeed * xSpeed * signum(xSpeed) * maximumSpeed;
+            ySpeed = ySpeed * ySpeed * signum(ySpeed)  * maximumSpeed;
+            rSpeed = rSpeed * rSpeed * signum(rSpeed);
             swerveDrive.drive(new Translation2d(xSpeed, ySpeed), rSpeed, fieldRelative, false);
         });
-    }
-
-    public void setDefaultCommand(DoubleSupplier translationX, DoubleSupplier translationY,
-            DoubleSupplier angularRotation, boolean fieldRelative) {
-
-        super.setDefaultCommand(getDriveCommand(null, null, null, false));
     }
 }
