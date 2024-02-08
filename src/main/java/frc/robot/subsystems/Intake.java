@@ -1,4 +1,6 @@
 package frc.robot.subsystems;
+import static java.lang.Math.abs;
+
 import java.util.function.BooleanSupplier;
 
 import com.revrobotics.AbsoluteEncoder;
@@ -29,7 +31,16 @@ public class Intake extends SubsystemBase{
     private double toggleI = 0;
     private double toggleD = 0;
 
-    public enum intakePosition{up, down}
+    public enum intakePosition{
+        up(90),
+        down(0);
+
+        public double angle;
+
+        private intakePosition(double value){  
+            this.angle=value;   
+        }  
+    }
 
     public Intake()
     {
@@ -41,29 +52,25 @@ public class Intake extends SubsystemBase{
         toggleController.setD(toggleD);
 
         toggleEncoder.setPositionConversionFactor(360);
+        toggleEncoder.setVelocityConversionFactor(360/60);
     }
 
     public void ChangeIntakePosition(intakePosition chosenPosition)
     {
-        switch (chosenPosition) {
-            case up:
-                toggleController.setReference(90, ControlType.kPosition);
-                break;
-            case down:
-                toggleController.setReference(0, ControlType.kPosition);
-                break;
-        }
+        toggleController.setReference(chosenPosition.angle, ControlType.kPosition);
+    }
+
+    public double GetIntakeAngle() {
+        return toggleEncoder.getPosition();
     }
 
     public intakePosition GetIntakePosition()
     {
-        if(toggleEncoder.getPosition() >= 88)
-        {    return intakePosition.up;   }
+        return GetIntakeAngle() > 45 ? intakePosition.up : intakePosition.down;
+    }
 
-        else if(toggleEncoder.getPosition() >= -1 && toggleEncoder.getPosition() <= 1)
-        {    return intakePosition.down;   }
-
-        else { return null; }
+    public boolean IntakeStopped(){
+        return abs(toggleEncoder.getVelocity()) < 5;
     }
 
     public BooleanSupplier notePresent()
