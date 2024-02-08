@@ -45,17 +45,13 @@ public class Intake extends SubsystemBase{
 
     public void ChangeIntakePosition(intakePosition chosenPosition)
     {
-        if(chosenPosition == intakePosition.up)
-        {
-            toggleController.setReference(90, ControlType.kPosition);
-        }
-        else if(chosenPosition == intakePosition.down)
-        {
-            toggleController.setReference(0, ControlType.kPosition);
-        }
-        else
-        {
-            System.out.println("ChangeIntakePosition must take in either 'intakePosition.up' or 'intakePosition.down'");
+        switch (chosenPosition) {
+            case up:
+                toggleController.setReference(90, ControlType.kPosition);
+                break;
+            case down:
+                toggleController.setReference(0, ControlType.kPosition);
+                break;
         }
     }
 
