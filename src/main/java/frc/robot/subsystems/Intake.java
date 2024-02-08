@@ -73,13 +73,9 @@ public class Intake extends SubsystemBase{
         return abs(toggleEncoder.getVelocity()) < 5;
     }
 
-    public BooleanSupplier notePresent()
+    public boolean notePresent()
     {
-        BooleanSupplier beam;
-        if(beamBreak.get() == true){beam = () -> true;}
-        else{beam = () -> false;}
-        
-        return beam;
+        return beamBreak.get();
     }
 
     public Command runIntake()
@@ -95,7 +91,7 @@ public class Intake extends SubsystemBase{
                 ChangeIntakePosition(intakePosition.down);
             }
             
-        }).until(notePresent()).withTimeout(5).finallyDo(() ->
+        }).until(()->{return notePresent();}).withTimeout(5).finallyDo(() ->
         { 
             stopIntake();
         });
