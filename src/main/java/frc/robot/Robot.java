@@ -9,23 +9,82 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.subsystems.Drivetrain;
+import frc.robot.subsystems.ExtendoArm;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Yeeter;
+
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
-  private CommandXboxController m_controller = new CommandXboxController(0);
+  private CommandXboxController controller = new CommandXboxController(0);
   private Drivetrain m_driveTrain = new Drivetrain();
+  private ExtendoArm arm = new ExtendoArm();
+  private Yeeter yeeter = new Yeeter();
+  private Intake intake = new Intake();
 
   @Override
   public void robotInit() {
 
     m_driveTrain.setDefaultCommand(m_driveTrain.getDriveCommand(() -> {
-      return m_controller.getRawAxis(0);
+      return controller.getRawAxis(0);
     }, () -> {
-      return m_controller.getRawAxis(1);
+      return controller.getRawAxis(1);
     }, () -> {
-      return m_controller.getRawAxis(4);
+      return controller.getRawAxis(4);
     }, true));
 
+    /*
+     * RT: Shoot
+     * Bumpers: Intake
+     * Y: Arm up
+     * A: Arm down
+     * DPad-Up: Elevator Up
+     * DPad-Down: Elevator Down
+     * LT: Automated Climb
+     * (Elevator controls to be automated once reasonable)
+     */
+
+    controller.leftBumper().and(() -> {
+      return !(yeeter.HasNote() || intake.HasNote());
+    }).whileTrue(intake.intakeNote());
+
+    controller.rightBumper().whileTrue(run(() -> {
+      intake.setVoltage(-3);
+    }, intake).finallyDo(() -> {
+      intake.stopIntake();
+    }));
+
+    controller.b().onTrue(either(
+        runOnce(() -> {
+          intake.setVoltage(4);
+          yeeter.SetVoltage(4);
+        }, intake, yeeter).until(() -> {
+          return !intake.HasNote() || yeeter.HasNote();
+        }).andThen(runOnce(() -> {
+          intake.stopIntake();
+          yeeter.Stop();
+        }, intake, yeeter)).andThen(arm.SetAngle(90)),
+        runOnce(() -> {
+          arm.setAngle(90);
+        }), () -> {
+          return intake.HasNote();
+        }));
+
+    controller.y().and(() -> {
+      return intake.HasNote() || yeeter.HasNote();
+    }).whileTrue(
+        either(none() /* TODO: Ramp up and shoot */, run(() -> {
+          yeeter.SetVoltage(4 /* TODO: Test for a better value*/);
+        }, yeeter).until(() -> {
+          return !yeeter.HasNote();
+        }).andThen(waitSeconds(.2)).andThen(runOnce(() -> {
+          yeeter.Stop(); // TODO: Make arm go down if not doing trap.
+        })), () -> {
+          return intake.HasNote();
+        }));
+
+    // TODO: Climbing controls
   }
 
   @Override

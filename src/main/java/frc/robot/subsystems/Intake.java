@@ -75,20 +75,17 @@ public class Intake extends SubsystemBase{
         return abs(toggleEncoder.getVelocity()) < 5;
     }
 
-    public boolean notePresent()
+    public boolean HasNote()
     {
         return beamBreak.get();
     }
 
     public Command intakeNote()
     {
-        if (notePresent())
-            return runOnce((()->{}));
-
         return SetIntakePosition(intakePosition.down).andThen(runOnce(()->{
             intakePull.setVoltage(0.2);
         })).andThen(waitUntil(()->{
-            return notePresent();
+            return HasNote();
         })).andThen(
             parallel(
                 SetIntakePosition(intakePosition.up),
@@ -109,7 +106,11 @@ public class Intake extends SubsystemBase{
     }
 
     public void stopIntake(){
-        intakePull.setVoltage(0);
+        setVoltage(0);
+    }
+
+    public void setVoltage(double voltage){
+        intakePull.setVoltage(voltage);
     }
 
 }
