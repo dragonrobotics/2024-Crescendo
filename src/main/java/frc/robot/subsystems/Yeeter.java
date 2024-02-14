@@ -6,13 +6,13 @@ import com.revrobotics.CANSparkLowLevel.MotorType;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class Shooter extends SubsystemBase {
+public class Yeeter extends SubsystemBase {
     public CANSparkMax shooterTop = new CANSparkMax(0, MotorType.kBrushless);
     public CANSparkMax shooterBottom = new CANSparkMax(0, MotorType.kBrushless);
     private DigitalInput beamBreak = new DigitalInput(1);
 
 
-    public Shooter() {
+    public Yeeter() {
         shooterBottom.setInverted(true);
         shooterBottom.follow(shooterTop);
         shooterBottom.setIdleMode(IdleMode.kCoast);
