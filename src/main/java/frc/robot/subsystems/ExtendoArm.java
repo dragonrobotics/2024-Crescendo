@@ -56,6 +56,11 @@ public class ExtendoArm extends SubsystemBase {
         return angleEncoder.getPosition();
     }
 
+    public boolean isAngleDown(){
+        if(getAngle() < 2){ return true;}
+        else{return false;}
+    }
+
     public void setExtension(double length) {
         // TODO: Add limits
         elevatorController.setReference(length, ControlType.kPosition);
@@ -65,24 +70,35 @@ public class ExtendoArm extends SubsystemBase {
         return elevatorEncoder.getPosition();
     }
 
+    public boolean isExtendDown(){
+        if(getExtension() < 2){return true;}
+        else{return false;}
+    }
+
     public Command SetAngle(double angle) {
-        /* TODO: Make sure it can't break by going down when it's extended */
-        return runOnce(() -> {
+        if(getExtension() < 2){
+            return runOnce(() -> {
             setAngle(angle);
         }).andThen(
                 waitUntil(() -> {
                     return Math.abs(getAngle() - angle) < 5;
                     /* TODO: Find better way to deadzone it */}));
+        }
+        else{return null;}
+        
     }
 
     public Command SetExtension(double height) {
-        /* TODO: Make sure it can't break itsself by extending when its up */
-        return runOnce(() -> {
+        if(getAngle() < 2){
+            return runOnce(() -> {
             setExtension(height);
         }).andThen(
                 waitUntil(() -> {
                     return Math.abs(getExtension() - height) < 5;
                     /* TODO: Find better way to deadzone it */}));
+        }
+        else{return null;}
+        
     }
 
 }
