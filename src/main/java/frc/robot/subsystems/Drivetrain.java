@@ -16,6 +16,7 @@ import swervelib.SwerveDrive;
 
 public class Drivetrain extends SubsystemBase {
     private final double maximumSpeed = 4.5;
+    private final double maxRotationalSpeed = 6;
     private SwerveDrive swerveDrive;
 
     public Drivetrain() {
@@ -27,6 +28,7 @@ public class Drivetrain extends SubsystemBase {
             e.printStackTrace();
             System.exit(1);
         }
+        
     }
 
     public Command getDriveCommand(DoubleSupplier translationY, DoubleSupplier translationX,
@@ -37,8 +39,12 @@ public class Drivetrain extends SubsystemBase {
             double rSpeed = angularRotation.getAsDouble();
             xSpeed = xSpeed * xSpeed * signum(xSpeed) * maximumSpeed;
             ySpeed = ySpeed * ySpeed * signum(ySpeed)  * maximumSpeed;
-            rSpeed = rSpeed * rSpeed * signum(rSpeed);
+            rSpeed = rSpeed * rSpeed * signum(rSpeed) * maxRotationalSpeed;
             swerveDrive.drive(new Translation2d(xSpeed, ySpeed), rSpeed, fieldRelative, false);
         });
+    }
+
+    public void zero(){
+        swerveDrive.zeroGyro();
     }
 }

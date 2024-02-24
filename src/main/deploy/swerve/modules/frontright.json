@@ -1,12 +1,12 @@
 {
   "drive": {
     "type": "sparkmax",
-    "id": 15,
+    "id": 11,
     "canbus": null
   },
   "angle": {
     "type": "sparkmax",
-    "id": 14,
+    "id": 10,
     "canbus": null
   },
   "encoder": {
@@ -16,10 +16,11 @@
   },
   "inverted": {
     "drive": false,
-    "angle": true
+    "angle": false
   },
+  "absoluteEncoderInverted": true,
   "location": {
-    "front": 11.25,
-    "left": -11.25
+    "front": 12.75,
+    "left": -10.25
   }
 }
