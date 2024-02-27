@@ -1,9 +1,8 @@
 package frc.robot.subsystems;
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
 
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -11,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Yeeter extends SubsystemBase {
     public CANSparkMax shooterTop = new CANSparkMax(0, MotorType.kBrushless);
     public CANSparkMax shooterBottom = new CANSparkMax(0, MotorType.kBrushless);
-    public AbsoluteEncoder shooterEncoder = shooterTop.getAbsoluteEncoder(Type.kDutyCycle);
+    public RelativeEncoder shooterEncoder = shooterTop.getEncoder();
     private DigitalInput beamBreak = new DigitalInput(1);
 
 
