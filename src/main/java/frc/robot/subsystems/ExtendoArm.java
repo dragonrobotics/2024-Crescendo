@@ -101,8 +101,7 @@ public class ExtendoArm extends SubsystemBase {
             /* TODO: Find better way to deadzone it */}));
         }
 
-        
-    
+  
 
     public void setElevatorVoltage(double voltage){
         rightElevatorMotor.setVoltage(voltage);
