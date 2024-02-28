@@ -84,30 +84,25 @@ public class ExtendoArm extends SubsystemBase {
     }
 
     public Command SetAngle(double angle) {
-        if(getExtension() < 2){
-            return runOnce(() -> {
-            setAngle(angle);
-        }).andThen(
-                waitUntil(() -> {
-                    return Math.abs(getAngle() - angle) < 5;
-                    /* TODO: Find better way to deadzone it */}));
+        return runOnce(() -> {
+        setAngle(angle);
+        })
+        .andThen(waitUntil(() -> {
+            return Math.abs(getAngle() - angle) < 5;
+            /* TODO: Find better way to deadzone it */}));
         }
-        else{return null;}
-        
-    }
 
     public Command SetExtension(double height) {
-        if(getAngle() < 2){
-            return runOnce(() -> {
-            setExtension(height);
-        }).andThen(
-                waitUntil(() -> {
-                    return Math.abs(getExtension() - height) < 5;
-                    /* TODO: Find better way to deadzone it */}));
+        return runOnce(() -> {
+        setExtension(height);
+        })
+        .andThen(waitUntil(() -> {
+            return Math.abs(getExtension() - height) < 5;
+            /* TODO: Find better way to deadzone it */}));
         }
-        else{return null;}
+
         
-    }
+    
 
     public void setElevatorVoltage(double voltage){
         rightElevatorMotor.setVoltage(voltage);
