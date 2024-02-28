@@ -4,13 +4,17 @@ import static edu.wpi.first.wpilibj2.command.Commands.waitUntil;
 
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 
 public class ExtendoArm extends SubsystemBase {
     private CANSparkMax leftRotateMotor = new CANSparkMax(0, MotorType.kBrushless);
@@ -18,16 +22,18 @@ public class ExtendoArm extends SubsystemBase {
     private CANSparkMax leftElevatorMotor = new CANSparkMax(0, MotorType.kBrushless);
     private CANSparkMax rightElevatorMotor = new CANSparkMax(0, MotorType.kBrushless);
 
-    private AbsoluteEncoder angleEncoder = rightRotateMotor.getAbsoluteEncoder(Type.kDutyCycle);
-    private AbsoluteEncoder elevatorEncoder = rightElevatorMotor.getAbsoluteEncoder(Type.kDutyCycle);
+    private RelativeEncoder angleEncoder = rightRotateMotor.getEncoder();
+    private RelativeEncoder elevatorEncoder = rightElevatorMotor.getEncoder();
+
+    private DigitalInput elevatorLimitSwitch = new DigitalInput(0); // TODO: get actual port
 
     private SparkPIDController angleController = rightRotateMotor.getPIDController();
-    private double angleP = 0.1;
+    private double angleP = 0.1; // TODO: Tune pid
     private double angleI = 0.0;
     private double angleD = 0.0;
 
     private SparkPIDController elevatorController = rightElevatorMotor.getPIDController();
-    private double elevatorP = 0.1;
+    private double elevatorP = 0.1; // TODO: Tune pid
     private double elevatorI = 0.0;
     private double elevatorD = 0.0;
 
@@ -37,14 +43,16 @@ public class ExtendoArm extends SubsystemBase {
         angleController.setP(angleP);
         angleController.setI(angleI);
         angleController.setD(angleD);
-        angleEncoder.setPositionConversionFactor(360);
-
+        angleEncoder.setPositionConversionFactor(360); // TODO: Find actual conversion factor (based on gear ratio, easy math.)
+        angleEncoder.setPosition(0);
         leftElevatorMotor.follow(rightElevatorMotor);
         elevatorController.setFeedbackDevice(elevatorEncoder);
         elevatorController.setP(elevatorP);
         elevatorController.setI(elevatorI);
         elevatorController.setD(elevatorD);
         elevatorEncoder.setPositionConversionFactor(1); // TODO: Find actual value (unit: meters?)
+
+        run(()->{setElevatorVoltage(-2);}).until(()->{return elevatorLimitSwitch.get();}).andThen(runOnce(()->{elevatorEncoder.setPosition(0);})).withInterruptBehavior(InterruptionBehavior.kCancelIncoming).schedule();
     }
 
     public void setAngle(double angle) {
@@ -99,6 +107,10 @@ public class ExtendoArm extends SubsystemBase {
         }
         else{return null;}
         
+    }
+
+    public void setElevatorVoltage(double voltage){
+        rightElevatorMotor.setVoltage(voltage);
     }
 
 }

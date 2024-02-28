@@ -34,6 +34,8 @@ public class Robot extends TimedRobot {
       return controller.getRawAxis(4);
     }, true));
 
+    controller.back().onTrue(runOnce(()->{m_driveTrain.zero();}, m_driveTrain));
+
     /*
      * RT: Shoot
      * Bumpers: Intake
@@ -44,7 +46,7 @@ public class Robot extends TimedRobot {
      * LT: Automated Climb
      * (Elevator controls to be automated once reasonable)
      */
-
+/* 
     controller.leftBumper().and(() -> {
       return !(yeeter.HasNote() || intake.HasNote());
     }).whileTrue(intake.intakeNote());
@@ -78,13 +80,10 @@ public class Robot extends TimedRobot {
       return intake.HasNote() || yeeter.HasNote();
     }).whileTrue(
         either(run(() -> {yeeter.SetVoltage(4);}, yeeter)
-        .until(() -> {return yeeter.getSpeed() > 5; /*TODO: test for a better value */})
+        .until(() -> {return yeeter.getSpeed() > 5; /*TODO: test for a better value *//*})
         .andThen(run(() -> {intake.setVoltage(4);}, intake))
         .until(() -> {return !yeeter.HasNote() && !intake.HasNote();})
         .andThen(run(() -> {yeeter.Stop(); intake.stopIntake();}, intake, yeeter)), 
-        
-        run(() -> {
-          yeeter.SetVoltage(4 /* TODO: Test for a better value*/);
         }, yeeter).until(() -> {
           return !yeeter.HasNote();
         }).andThen(waitSeconds(.2)).andThen(runOnce(() -> {
@@ -95,7 +94,7 @@ public class Robot extends TimedRobot {
           return intake.HasNote();
         }));
 
-    // TODO: Climbing controls
+ */    // TODO: Climbing controls
   }
 
   @Override
