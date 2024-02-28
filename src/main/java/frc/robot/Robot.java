@@ -57,7 +57,7 @@ public class Robot extends TimedRobot {
       intake.stopIntake();
     }));
 
-    controller.b().onTrue(either(
+    controller.b().and(() -> {return arm.isAngleDown();}).onTrue(either(
         runOnce(() -> {
           intake.setVoltage(4);
           yeeter.SetVoltage(4);
@@ -67,22 +67,30 @@ public class Robot extends TimedRobot {
           intake.stopIntake();
           yeeter.Stop();
         }, intake, yeeter)).andThen(arm.SetAngle(90)),
+        
         runOnce(() -> {
           arm.setAngle(90);
-        }), () -> {
+        }),
+        
+        () -> {
           return intake.HasNote();
         }));
 
     controller.y().and(() -> {
       return intake.HasNote() || yeeter.HasNote();
     }).whileTrue(
-        either(none() /* TODO: Ramp up and shoot *, run(() -> {
-          yeeter.SetVoltage(4 /* TODO: Test for a better value*);
+        either(run(() -> {yeeter.SetVoltage(4);}, yeeter)
+        .until(() -> {return yeeter.getSpeed() > 5; /*TODO: test for a better value *//*})
+        .andThen(run(() -> {intake.setVoltage(4);}, intake))
+        .until(() -> {return !yeeter.HasNote() && !intake.HasNote();})
+        .andThen(run(() -> {yeeter.Stop(); intake.stopIntake();}, intake, yeeter)), 
         }, yeeter).until(() -> {
           return !yeeter.HasNote();
         }).andThen(waitSeconds(.2)).andThen(runOnce(() -> {
           yeeter.Stop(); // TODO: Make arm go down if not doing trap.
-        })), () -> {
+        })),
+        
+        () -> {
           return intake.HasNote();
         }));
 
