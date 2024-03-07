@@ -28,7 +28,7 @@ public class Drivetrain extends SubsystemBase {
             e.printStackTrace();
             System.exit(1);
         }
-        
+        zero();
     }
 
     public Command getDriveCommand(DoubleSupplier translationY, DoubleSupplier translationX,
@@ -39,7 +39,7 @@ public class Drivetrain extends SubsystemBase {
             double rSpeed = angularRotation.getAsDouble();
             xSpeed = xSpeed * xSpeed * signum(xSpeed) * maximumSpeed;
             ySpeed = ySpeed * ySpeed * signum(ySpeed)  * maximumSpeed;
-            rSpeed = rSpeed * rSpeed * signum(rSpeed) * maxRotationalSpeed;
+            rSpeed = rSpeed * rSpeed * -signum(rSpeed) * maxRotationalSpeed;
             swerveDrive.drive(new Translation2d(xSpeed, ySpeed), rSpeed, fieldRelative, false);
         });
     }

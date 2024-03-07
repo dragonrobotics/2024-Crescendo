@@ -15,17 +15,17 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 public class Intake extends SubsystemBase{
-    private DigitalInput beamBreak = new DigitalInput(1);
+    private DigitalInput beamBreak = new DigitalInput(0);
 
-    private CANSparkMax intakePull = new CANSparkMax(2, MotorType.kBrushless);
-    private CANSparkMax intakePull2 = new CANSparkMax(3, MotorType.kBrushless);
+    //private CANSparkMax intakePull = new CANSparkMax(2, MotorType.kBrushless);
+    //private CANSparkMax intakePull2 = new CANSparkMax(3, MotorType.kBrushless);
 
-    private CANSparkMax intakeToggle = new CANSparkMax(3, MotorType.kBrushless);
-    private CANSparkMax intakeToggle2 = new CANSparkMax(3, MotorType.kBrushless);
+    private CANSparkMax intakeToggle = new CANSparkMax(22, MotorType.kBrushless);
+    private CANSparkMax intakeToggle2 = new CANSparkMax(23, MotorType.kBrushless);
 
     private AbsoluteEncoder toggleEncoder = intakeToggle.getAbsoluteEncoder(Type.kDutyCycle);
     
-    private SparkPIDController toggleController = intakeToggle.getPIDController();
+    //private SparkPIDController toggleController = intakeToggle.getPIDController();
 
     private double toggleP = 0.1;
     private double toggleI = 0;
@@ -44,12 +44,12 @@ public class Intake extends SubsystemBase{
 
     public Intake()
     {
-        intakePull2.follow(intakePull);
+        //intakePull2.follow(intakePull);
         intakeToggle2.follow(intakeToggle);
 
-        toggleController.setP(toggleP);
-        toggleController.setI(toggleI);
-        toggleController.setD(toggleD);
+        //toggleController.setP(toggleP);
+        //toggleController.setI(toggleI);
+        //toggleController.setD(toggleD);
 
         toggleEncoder.setPositionConversionFactor(360);
         toggleEncoder.setVelocityConversionFactor(360/60);
@@ -57,7 +57,7 @@ public class Intake extends SubsystemBase{
 
     public void ChangeIntakePosition(intakePosition chosenPosition)
     {
-        toggleController.setReference(chosenPosition.angle, ControlType.kPosition);
+        //toggleController.setReference(chosenPosition.angle, ControlType.kPosition);
     }
 
     public double GetIntakeAngle() {
@@ -81,7 +81,7 @@ public class Intake extends SubsystemBase{
     public Command intakeNote()
     {
         return SetIntakePosition(intakePosition.down).andThen(runOnce(()->{
-            intakePull.setVoltage(0.2);
+            //intakePull.setVoltage(0.2);
         })).andThen(waitUntil(()->{
             return HasNote();
         })).andThen(
@@ -89,7 +89,7 @@ public class Intake extends SubsystemBase{
                 SetIntakePosition(intakePosition.up),
                 runOnce(()->{stopIntake();})
             )
-        ).finallyDo(()->{
+        ).andThen(run(()->{})).finallyDo(()->{
             stopIntake();
         });
     }
@@ -108,7 +108,7 @@ public class Intake extends SubsystemBase{
     }
 
     public void setVoltage(double voltage){
-        intakePull.setVoltage(voltage);
+        //intakePull.setVoltage(voltage);
     }
 
 }

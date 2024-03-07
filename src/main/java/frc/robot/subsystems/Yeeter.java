@@ -10,14 +10,12 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Yeeter extends SubsystemBase {
-    public CANSparkMax shooterTop = new CANSparkMax(0, MotorType.kBrushless);
-    public CANSparkMax shooterBottom = new CANSparkMax(0, MotorType.kBrushless);
+    public CANSparkMax shooterTop = new CANSparkMax(29, MotorType.kBrushless);
+    public CANSparkMax shooterBottom = new CANSparkMax(28, MotorType.kBrushless);
     public RelativeEncoder shooterEncoder = shooterTop.getEncoder();
-    private DigitalInput beamBreak = new DigitalInput(1);
 
 
     public Yeeter() {
-        shooterBottom.setInverted(true);
         shooterBottom.follow(shooterTop);
         shooterBottom.setIdleMode(IdleMode.kCoast);
         shooterTop.setIdleMode(IdleMode.kCoast);
@@ -29,10 +27,6 @@ public class Yeeter extends SubsystemBase {
 
     public void Stop() {
         shooterTop.stopMotor();
-    }
-
-    public boolean HasNote() {
-        return beamBreak.get();
     }
 
     public double getSpeed(){
