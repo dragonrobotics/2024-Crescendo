@@ -8,6 +8,7 @@ import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -20,6 +21,7 @@ import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.ExtendoArm;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Yeeter;
+import frc.robot.subsystems.Intake.intakePosition;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
@@ -28,9 +30,9 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 
 public class Robot extends TimedRobot {
-  private Command m_autonomousCommand;
   private CommandXboxController controller = new CommandXboxController(0);
   private Drivetrain m_driveTrain = new Drivetrain();
+  private Command m_autonomousCommand = m_driveTrain.getDriveCommand(()->{return 0;}, ()->{return .4;}, ()->{return 0;}, true).withTimeout(3);
   private Yeeter yeeter = new Yeeter();
   private Intake intake = new Intake();
   Blank blank = new Blank();
@@ -39,50 +41,35 @@ public class Robot extends TimedRobot {
   public void robotInit() {
 
     m_driveTrain.setDefaultCommand(m_driveTrain.getDriveCommand(() -> {
-      return controller.getRawAxis(0);
+      return -controller.getRawAxis(0);
     }, () -> {
-      return controller.getRawAxis(1);
+      return -controller.getRawAxis(1);
     }, () -> {
       return controller.getRawAxis(4);
     }, true));
+    controller.back().onTrue(runOnce(()->{m_driveTrain.zero();}));
+    SmartDashboard.putData(intake);
+    SmartDashboard.putData(yeeter);
+    controller.rightBumper().whileTrue(intake.intakeNote(controller))
+        .onFalse(intake.SetIntakePosition(intakePosition.up));
+    
+    controller.y().whileTrue(sequence(runOnce(() -> {
+      yeeter.SetVoltage(12);
+    }), waitSeconds(.5), runOnce(() -> {
+      intake.setVoltage(12);
+    }), waitSeconds(3)).finallyDo(() -> {
+      intake.stopIntake();
+      yeeter.Stop();
+    }));
+    controller.x().onTrue(runOnce(()->{yeeter.SetVoltage(12);})).onFalse(runOnce(()->{yeeter.Stop();}));
+    controller.b().onTrue(runOnce(()->{intake.setVoltage(8);})).onFalse(runOnce(()->{intake.setVoltage(0);}));
 
-    controller.back().onTrue(runOnce(()->{m_driveTrain.zero();}, m_driveTrain));
-    CANSparkMax ev1 = new CANSparkMax(0, MotorType.kBrushless);
-    CANSparkMax ev2 = new CANSparkMax(0, MotorType.kBrushless);
-    ev2.follow(ev1, true);
-    RelativeEncoder evEnc = ev1.getEncoder();
-    CANSparkMax rt1 = new CANSparkMax(0, MotorType.kBrushless);
-    CANSparkMax rt2 = new CANSparkMax(0, MotorType.kBrushless);   
-    rt2.follow(rt1, true); 
-    RelativeEncoder rtEnc = rt1.getEncoder();
+    // controller.leftBumper().onTrue(intake.SetIntakePosition(intakePosition.down));
+    // controller.leftBumper().onTrue(intake.SetIntakePosition(intakePosition.up));
 
-    SysIdRoutine elevatorRoutine = new SysIdRoutine(new SysIdRoutine.Config(), new SysIdRoutine.Mechanism((Measure<Voltage> voltage) -> {
-      ev1.set(voltage.in(Units.Volts)/ev1.getBusVoltage());
-    }, (SysIdRoutineLog log) -> {
-        log.motor("elevator")
-          .voltage(Units.Volts.of(ev1.get()*ev1.getBusVoltage()))
-          .linearPosition(Units.Meters.of(evEnc.getPosition()))
-          .linearVelocity(Units.MetersPerSecond.of(evEnc.getVelocity()));
-    }, blank));
-    SysIdRoutine rotationRoutine = new SysIdRoutine(new SysIdRoutine.Config(), new SysIdRoutine.Mechanism((Measure<Voltage> voltage) -> {
-       rt1.set(voltage.in(Units.Volts)/rt1.getBusVoltage());
-    }, (SysIdRoutineLog log) -> {
-        log.motor("rotation")
-          .voltage(Units.Volts.of(rt1.get()*rt1.getBusVoltage()))
-          .angularPosition(Units.Degrees.of(rtEnc.getPosition()))
-          .angularVelocity(Units.DegreesPerSecond.of(rtEnc.getVelocity()));
-    }, blank));
-
-    controller.x().whileTrue(elevatorRoutine.dynamic(Direction.kForward).andThen(runOnce(()->{ev1.set(0);})));
-    controller.a().whileTrue(elevatorRoutine.dynamic(Direction.kReverse).andThen(runOnce(()->{ev1.set(0);})));
-    controller.y().whileTrue(elevatorRoutine.quasistatic(Direction.kForward).andThen(runOnce(()->{ev1.set(0);})));
-    controller.b().whileTrue(elevatorRoutine.quasistatic(Direction.kReverse).andThen(runOnce(()->{ev1.set(0);})));
-
-    controller.povLeft().whileTrue(rotationRoutine.dynamic(Direction.kForward).andThen(runOnce(()->{rt1.set(0);})));
-    controller.povDown().whileTrue(rotationRoutine.dynamic(Direction.kReverse).andThen(runOnce(()->{rt1.set(0);})));
-    controller.povUp().whileTrue(rotationRoutine.quasistatic(Direction.kForward).andThen(runOnce(()->{rt1.set(0);})));
-    controller.povRight().whileTrue(rotationRoutine.quasistatic(Direction.kReverse).andThen(runOnce(()->{rt1.set(0);})));
-
+    // controller.leftTrigger().whileTrue(intake.intakeNote());
+    // controller.rightTrigger().whileTrue(run(()->{yeeter.setVoltage(12);})).andThen(waitSeconds(1)).andThen(run(()->{intake.setVoltage(12);})).andThen(waitSeconds(3)).finallyDo((boolean
+    // interup)->{intake.stop(); shooter.stop();});++
 
     /*
      * RT: Shoot
@@ -95,21 +82,23 @@ public class Robot extends TimedRobot {
      * (Elevator controls to be automated once reasonable)
      */
 
-/*
-    controller.leftBumper().whileTrue(intake.intakeNote());
-
-    controller.rightBumper().whileTrue(run(() -> {
-      intake.setVoltage(-3);
-    }, intake).finallyDo(() -> {
-      intake.stopIntake();
-    }));
-*/
-    
+    /*
+     * controller.leftBumper().whileTrue(intake.intakeNote());
+     * 
+     * controller.rightBumper().whileTrue(run(() -> {
+     * intake.setVoltage(-3);
+     * }, intake).finallyDo(() -> {
+     * intake.stopIntake();
+     * }));
+     */
   }
 
   @Override
   public void robotPeriodic() {
+    SmartDashboard.putBoolean("bb", intake.HasNote());
+
     CommandScheduler.getInstance().run();
+
   }
 
   @Override

@@ -1,114 +1,142 @@
 package frc.robot.subsystems;
+
 import static java.lang.Math.abs;
 
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
+import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-public class Intake extends SubsystemBase{
-    private DigitalInput beamBreak = new DigitalInput(0);
-
-    //private CANSparkMax intakePull = new CANSparkMax(2, MotorType.kBrushless);
-    //private CANSparkMax intakePull2 = new CANSparkMax(3, MotorType.kBrushless);
-
-    private CANSparkMax intakeToggle = new CANSparkMax(22, MotorType.kBrushless);
-    private CANSparkMax intakeToggle2 = new CANSparkMax(23, MotorType.kBrushless);
-
+public class Intake extends SubsystemBase {
+    private DigitalInput beamBreak = new DigitalInput(2);
+    private CANSparkMax intakePull = new CANSparkMax(22, MotorType.kBrushless);
+    private CANSparkMax intakePull2 = new CANSparkMax(23, MotorType.kBrushless);
+    
+    private CANSparkMax intakeToggle = new CANSparkMax(12, MotorType.kBrushless);
+    private CANSparkMax intakeToggle2 = new CANSparkMax(25, MotorType.kBrushless);
+    
     private AbsoluteEncoder toggleEncoder = intakeToggle.getAbsoluteEncoder(Type.kDutyCycle);
     
-    //private SparkPIDController toggleController = intakeToggle.getPIDController();
-
     private double toggleP = 0.1;
     private double toggleI = 0;
     private double toggleD = 0;
-
-    public enum intakePosition{
-        up(90),
-        down(0);
-
+    
+    public enum intakePosition {
+        up(5),
+        none(0),
+        down(133);
+        
         public double angle;
-
-        private intakePosition(double value){  
-            this.angle=value;   
-        }  
+        
+        private intakePosition(double value) {
+            this.angle = value;
+        }
     }
+    
+    public Intake() {
+        intakePull.restoreFactoryDefaults();
+        intakePull2.restoreFactoryDefaults();
+        intakeToggle2.follow(intakeToggle, true);
+        intakePull.follow(intakePull2);
 
-    public Intake()
-    {
-        //intakePull2.follow(intakePull);
-        intakeToggle2.follow(intakeToggle);
+        intakeToggle.setIdleMode(IdleMode.kBrake);
+        intakeToggle2.setIdleMode(IdleMode.kBrake);
 
-        //toggleController.setP(toggleP);
-        //toggleController.setI(toggleI);
-        //toggleController.setD(toggleD);
+        intakeToggle.setInverted(false);
 
         toggleEncoder.setPositionConversionFactor(360);
-        toggleEncoder.setVelocityConversionFactor(360/60);
-    }
-
-    public void ChangeIntakePosition(intakePosition chosenPosition)
-    {
-        //toggleController.setReference(chosenPosition.angle, ControlType.kPosition);
+        toggleEncoder.setInverted(true);
     }
 
     public double GetIntakeAngle() {
         return toggleEncoder.getPosition();
     }
 
-    public intakePosition GetIntakePosition()
-    {
-        return GetIntakeAngle() > 45 ? intakePosition.up : intakePosition.down;
+    public intakePosition GetIntakePosition() {
+        if (GetIntakeAngle() > 120) {
+            return intakePosition.down;
+        } else if (GetIntakeAngle() < 15) {
+            return intakePosition.up;
+        } else
+            return intakePosition.none;
     }
 
-    public boolean IntakeStopped(){
+    public boolean IntakeStopped() {
         return abs(toggleEncoder.getVelocity()) < 5;
     }
 
-    public boolean HasNote()
-    {
-        return beamBreak.get();
+    public boolean HasNote() {
+        return !beamBreak.get();
     }
 
-    public Command intakeNote()
-    {
-        return SetIntakePosition(intakePosition.down).andThen(runOnce(()->{
-            //intakePull.setVoltage(0.2);
-        })).andThen(waitUntil(()->{
+    public Command intakeNote(CommandXboxController controller) {
+        return SetIntakePosition(intakePosition.down).andThen(runOnce(() -> {
+            setVoltage(4);
+        })).andThen(waitUntil(() -> {
             return HasNote();
         })).andThen(
-            parallel(
-                SetIntakePosition(intakePosition.up),
-                runOnce(()->{stopIntake();})
-            )
-        ).andThen(run(()->{})).finallyDo(()->{
-            stopIntake();
-        });
+                sequence(
+                    runOnce(() -> {
+                        controller.getHID().setRumble(RumbleType.kBothRumble, 1);
+                    })),
+                        runOnce(() -> {
+                            stopIntake();
+                        }),
+                        SetIntakePosition(intakePosition.up))
+                .finallyDo(() -> {
+                    controller.getHID().setRumble(RumbleType.kBothRumble, 0);
+                    stopIntake();
+                });
     }
 
-    public Command SetIntakePosition(intakePosition position)
-    {
-        return run(()->{
-            ChangeIntakePosition(position);
-        }).until(()->{
-            return GetIntakePosition() == position && IntakeStopped();
-        });
+    public Command SetIntakePosition(intakePosition position) {
+
+        return runOnce(() -> {
+            double movePower = 4;
+            if (position == intakePosition.up) {
+                movePower *= -4;
+            }
+            intakeToggle.setVoltage(movePower);
+        }).andThen(waitUntil(() -> {
+            return GetIntakePosition().angle == position.angle;
+        })).finallyDo((boolean intr) -> {
+            System.out.println("At point");
+            stopRotate();
+        }).withInterruptBehavior(InterruptionBehavior.kCancelIncoming);
     }
 
-    public void stopIntake(){
+    public void stopIntake() {
         setVoltage(0);
     }
 
-    public void setVoltage(double voltage){
-        //intakePull.setVoltage(voltage);
+    public void setVoltage(double voltage) {
+        intakePull2.setVoltage(-voltage);
     }
 
+    public void setRotateVoltage(double voltage) {
+        intakeToggle.setVoltage(voltage);
+    }
+
+    public void stopRotate() {
+        intakeToggle.stopMotor();
+    }
+
+
+    @Override
+    public void periodic(){
+        SmartDashboard.putNumber("Temp", intakeToggle.getMotorTemperature());
+    }
 }

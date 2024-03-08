@@ -16,8 +16,10 @@ public class Yeeter extends SubsystemBase {
 
 
     public Yeeter() {
+        shooterBottom.restoreFactoryDefaults();
+        shooterTop.restoreFactoryDefaults();
         shooterBottom.follow(shooterTop);
-        shooterBottom.setIdleMode(IdleMode.kCoast);
+        shooterBottom.setIdleMode(IdleMode.kBrake);
         shooterTop.setIdleMode(IdleMode.kCoast);
     }
 
