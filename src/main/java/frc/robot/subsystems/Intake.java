@@ -4,12 +4,11 @@ import static java.lang.Math.abs;
 
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.SparkPIDController;
-import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
 
+import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,10 +28,6 @@ public class Intake extends SubsystemBase {
     private CANSparkMax intakeToggle2 = new CANSparkMax(25, MotorType.kBrushless);
     
     private AbsoluteEncoder toggleEncoder = intakeToggle.getAbsoluteEncoder(Type.kDutyCycle);
-    
-    private double toggleP = 0.1;
-    private double toggleI = 0;
-    private double toggleD = 0;
     
     public enum intakePosition {
         up(5),
@@ -59,6 +54,7 @@ public class Intake extends SubsystemBase {
 
         toggleEncoder.setPositionConversionFactor(360);
         toggleEncoder.setInverted(true);
+
     }
 
     public double GetIntakeAngle() {
@@ -66,9 +62,9 @@ public class Intake extends SubsystemBase {
     }
 
     public intakePosition GetIntakePosition() {
-        if (GetIntakeAngle() > 120) {
+        if (GetIntakeAngle() > 120 && GetIntakeAngle() < 300) {
             return intakePosition.down;
-        } else if (GetIntakeAngle() < 15) {
+        } else if (GetIntakeAngle() < 15 || GetIntakeAngle() >  300) {
             return intakePosition.up;
         } else
             return intakePosition.none;
@@ -78,7 +74,7 @@ public class Intake extends SubsystemBase {
         return abs(toggleEncoder.getVelocity()) < 5;
     }
 
-    public boolean HasNote() {
+    public boolean hasNote() {
         return !beamBreak.get();
     }
 
@@ -86,7 +82,7 @@ public class Intake extends SubsystemBase {
         return SetIntakePosition(intakePosition.down).andThen(runOnce(() -> {
             setVoltage(4);
         })).andThen(waitUntil(() -> {
-            return HasNote();
+            return hasNote();
         })).andThen(
                 sequence(
                     runOnce(() -> {
@@ -105,7 +101,7 @@ public class Intake extends SubsystemBase {
     public Command SetIntakePosition(intakePosition position) {
 
         return runOnce(() -> {
-            double movePower = 4;
+            double movePower = 8;
             if (position == intakePosition.up) {
                 movePower *= -4;
             }
@@ -137,6 +133,11 @@ public class Intake extends SubsystemBase {
 
     @Override
     public void periodic(){
-        SmartDashboard.putNumber("Temp", intakeToggle.getMotorTemperature());
+        SmartDashboard.putNumber("Intake Angle", toggleEncoder.getPosition());
+        SmartDashboard.putBoolean("Intake Has Note", hasNote());
+    }
+
+    @Override
+    public void initSendable(SendableBuilder builder){
     }
 }
