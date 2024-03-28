@@ -13,32 +13,34 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
-import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.Units;
-import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.ProfiledPIDSubsystem;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
 
 public class ArmRotation extends ProfiledPIDSubsystem {
+    
+    public enum RotationAngle {
+        Down(0),
+        Amp(90),
+        Trap(110);
+
+        public double angle;
+        private RotationAngle(double angle){
+            this.angle = angle;
+        }
+    }
 
     CANSparkMax armRotation = new CANSparkMax(20, MotorType.kBrushless);
     CANSparkMax armRotation_Follower = new CANSparkMax(24, MotorType.kBrushless);
 
     RelativeEncoder armEncoder = armRotation.getEncoder();
-    int callCount = 0;
+    RotationAngle currentTarget = RotationAngle.Amp;
 
     public ArmRotation() {
-        super(
-            new ProfiledPIDController(.64, 0, 0, new Constraints(60, 100))
+        super(//.64
+            new ProfiledPIDController(1.4, 0, 0, new Constraints(1600, 800))
             );
-        SmartDashboard.putData("PidController", getController());
+        getController().setTolerance(1);
 
         armRotation.restoreFactoryDefaults();
         armRotation_Follower.restoreFactoryDefaults();
@@ -52,16 +54,13 @@ public class ArmRotation extends ProfiledPIDSubsystem {
 
         armRotation_Follower.follow(armRotation, true);
 
-        setGoal(0);
-enable();
-        SmartDashboard.putData("Arm Rotation Subsystem", this);
+        setGoal(currentTarget.angle);
+        enable();
     }
 
     @Override
     protected void useOutput(double output, State setpoint) {
-        callCount++;
-        SmartDashboard.putNumber("Call Count", callCount);
-        armRotation.set(.2);
+        armRotation.set(output/armRotation.getBusVoltage());
     }
 
     @Override
@@ -73,19 +72,26 @@ enable();
         return getController().atGoal();
     }
 
-    public Command rotateToPosition(double angle) {
-        SmartDashboard.putNumber("TAngle", angle);
+    public RotationAngle getRotation(){
+        return currentTarget;
+    }
+
+    public Command rotateToPosition(RotationAngle angle) {
         return sequence(
-                new PrintCommand("Set Angle: " + angle),
                 runOnce(() -> {
-                    setGoal(angle);
+                    currentTarget = angle;
+                    setGoal(angle.angle);
                 }),
                 waitUntil(this::atGoal));
     }
 
+    
+
     @Override
     public void periodic() {
+        super.periodic();
         SmartDashboard.putNumber("Arm Angle", getMeasurement());
+        SmartDashboard.putString("Arm Rotation Position", getRotation().name());
         SmartDashboard.putBoolean("Arm At Goal", atGoal());
     }
 }

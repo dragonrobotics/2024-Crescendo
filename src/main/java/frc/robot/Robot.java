@@ -5,58 +5,85 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.subsystems.ArmExtension;
-import frc.robot.subsystems.Blank;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Yeeter;
 import frc.robot.subsystems.ArmExtension;
 import frc.robot.subsystems.ArmRotation;
+import frc.robot.subsystems.ArmExtension.ExtensionPosition;
+import frc.robot.subsystems.ArmRotation.RotationAngle;
 import frc.robot.subsystems.Intake.intakePosition;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
+import edu.wpi.first.networktables.DoubleEntry;
+import edu.wpi.first.networktables.GenericEntry;
+
 public class Robot extends TimedRobot {
-  //private ArmExtension armExtension = new ArmExtension();
+  private ArmExtension armExtension = new ArmExtension();
   private ArmRotation armRotation = new ArmRotation();
   private CommandXboxController controller = new CommandXboxController(0);
   private Drivetrain m_driveTrain = new Drivetrain();
-  private Command m_autonomousCommand = either(getShootCommand(), none(), () -> {
-    return SmartDashboard.getBoolean("ShouldShoot", false);
-  }).andThen(m_driveTrain.getDriveCommand(() -> {
-    return 0;
-  }, () -> {
-    return .4;
-  }, () -> {
-    return 0;
-  }, true)).withTimeout(3);
   private Yeeter yeeter = new Yeeter();
   private Intake intake = new Intake();
-  Blank blank = new Blank();
+  private GenericEntry entry = Shuffleboard.getTab("hi").add("Hi", 0).getEntry();
 
   public Command getShootCommand() {
-    return sequence(runOnce(() -> {
+    return either(
+      sequence(runOnce(() -> {
       yeeter.SetVoltage(12);
-    }), waitSeconds(.5), runOnce(() -> {
+    }, yeeter), waitSeconds(.5), runOnce(() -> {
       intake.setVoltage(12);
-    }), waitSeconds(3)).finallyDo(() -> {
-      intake.stopIntake();
-      yeeter.Stop();
-    });
+    }, intake), waitSeconds(1))
+        .finallyDo(() -> {
+          intake.stopIntake();
+          yeeter.Stop();
+        }),
+        sequence(
+          runOnce(() -> {
+            yeeter.SetVoltage(8);
+          }, yeeter),
+          waitSeconds(1),
+          runOnce(() -> {
+            yeeter.Stop();
+          }),
+          either(
+              sequence(armExtension.extendToPosition(ExtensionPosition.In),
+                   armRotation.rotateToPosition(RotationAngle.Down)),
+              none(), () -> {
+                return armRotation.getRotation() == RotationAngle.Amp;
+              })),
+              ()->{return armRotation.getRotation() == RotationAngle.Down;}
+    );
+  }
+
+  public Command getHandoffCommand() {
+
+    return either(sequence(
+        runOnce(() -> {
+          intake.setVoltage(4);
+          yeeter.SetVoltage(2);
+        }, intake, yeeter),
+        waitUntil(() -> {
+          return !intake.hasNote();
+        }),
+        runOnce(() -> {
+          intake.stopIntake();
+          yeeter.Stop();
+        }, intake, yeeter)).withInterruptBehavior(InterruptionBehavior.kCancelIncoming), none(), ()->{return intake.hasNote();});
   }
 
   @Override
   public void robotInit() {
-
-    configTestControls(controller);
-
-    SmartDashboard.putBoolean("ShouldShoot", true);
     m_driveTrain.setDefaultCommand(m_driveTrain.getDriveCommand(() -> {
       return -controller.getRawAxis(0);
     }, () -> {
@@ -67,29 +94,46 @@ public class Robot extends TimedRobot {
     controller.back().onTrue(runOnce(() -> {
       m_driveTrain.zero();
     }));
-    SmartDashboard.putData(intake);
-    SmartDashboard.putData(yeeter);
-    controller.rightBumper().whileTrue(intake.intakeNote(controller))
+
+    controller.rightBumper().and(() -> {
+      return armRotation.atGoal() && armRotation.getRotation() == RotationAngle.Down;
+    }).whileTrue(intake.intakeNote(controller))
         .onFalse(intake.SetIntakePosition(intakePosition.up));
 
-    teleop().and(controller.y()).whileTrue(getShootCommand());
-    teleop().and(controller.x()).onTrue(runOnce(() -> {
-      yeeter.SetVoltage(12);
-    })).onFalse(runOnce(() -> {
-      yeeter.Stop();
-    }));
-    teleop().and(controller.b()).onTrue(runOnce(() -> {
-      intake.setVoltage(8);
-    })).onFalse(runOnce(() -> {
-      intake.setVoltage(0);
+    controller.leftBumper().whileTrue(run(() -> {
+      intake.setVoltage(-4);
+    }).finallyDo(() -> {
+      intake.stopIntake();
     }));
 
-    teleop().and(controller.leftBumper()).whileTrue(run(()->{intake.setVoltage(-4);}).finallyDo(()->{intake.stopIntake();}));
-    controller.povUp().whileTrue(armRotation.rotateToPosition(100));
-    controller.povDown().whileTrue(armRotation.rotateToPosition(0));
-  }
+    controller.y().onTrue(getShootCommand());
 
-  private void configTestControls(CommandXboxController controller){
+    controller.b().and(() -> {
+      return armRotation.atGoal() && armRotation.getRotation() == ArmRotation.RotationAngle.Down;
+    }).onTrue(
+        sequence(
+            getHandoffCommand(),
+            armRotation.rotateToPosition(RotationAngle.Amp),
+            armExtension.extendToPosition(ExtensionPosition.Amp)));
+
+
+    controller.povUp().and(test()).onTrue(
+        sequence(
+          armExtension.extendToPosition(ExtensionPosition.In),
+          waitSeconds(3),
+          armRotation.rotateToPosition(RotationAngle.Down)
+        )
+      );
+
+    controller.povDown().and(()->{
+            return armRotation.atGoal() && armRotation.getRotation() == ArmRotation.RotationAngle.Down;
+      }).and(test()).onTrue(
+        sequence(
+          armRotation.rotateToPosition(RotationAngle.Trap),
+          armExtension.extendToPosition(ExtensionPosition.Trap),
+          getShootCommand()
+        )
+      );
 
   }
 
@@ -102,15 +146,10 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
 
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
-    }
   }
 
   @Override
   public void teleopInit() {
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.cancel();
-    }
+
   }
 }

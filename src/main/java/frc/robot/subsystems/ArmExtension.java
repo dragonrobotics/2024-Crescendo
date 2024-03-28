@@ -1,63 +1,100 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
+import static edu.wpi.first.wpilibj2.command.Commands.waitUntil;
+
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
-import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.Units;
-import edu.wpi.first.units.Voltage;
-import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.PIDSubsystem;
 import edu.wpi.first.wpilibj2.command.ProfiledPIDSubsystem;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism;
 
 public class ArmExtension extends ProfiledPIDSubsystem {
+    
+    public enum ExtensionPosition {
+        In(0),
+        Amp(23),
+        ClimbUp(Amp.distance),
+        ClimbDown(0),
+        Trap(38);
 
-    CANSparkMax armExtension = new CANSparkMax(0, MotorType.kBrushless);
-    CANSparkMax armExtension_Follower = new CANSparkMax(0, MotorType.kBrushless);
-
-    RelativeEncoder armEncoder = armExtension.getEncoder();
-    SysIdRoutine armRoutine = new SysIdRoutine(new Config(), new Mechanism((Measure<Voltage> volts) -> {
-        armExtension.set(volts.in(Units.Volts) / armExtension.getBusVoltage());
-    }, (SysIdRoutineLog log) -> {
-        log.motor("armExtension")
-            .voltage(Units.Volts.of(armExtension.get()*armExtension.getBusVoltage()))
-            .linearPosition(Units.Meters.of(armEncoder.getPosition()))
-            .linearVelocity(Units.MetersPerSecond.of(armEncoder.getVelocity()));
-    }, this));
-
-    public ArmExtension() {
-        super(new ProfiledPIDController(0, 0, 0, new Constraints(0, 0)));
-
-        armExtension.restoreFactoryDefaults();
-        armExtension_Follower.restoreFactoryDefaults();
-        armExtension_Follower.follow(armExtension, true);
+        public double distance;
+        private ExtensionPosition(double distance){
+            this.distance = distance;
+        }
     }
 
-    // TODO: Implement
+    CANSparkMax armExtension = new CANSparkMax(27, MotorType.kBrushless);
+    CANSparkMax armExtension_Follower = new CANSparkMax(14, MotorType.kBrushless);
+    double target = 0;
+    RelativeEncoder armEncoder = armExtension.getEncoder();
+    int callCount = 0;
+    ExtensionPosition currentTarget;
+
+
+    public ArmExtension() {
+        super(
+                new ProfiledPIDController(2, 0, 0, new Constraints(20, 6)));
+
+        getController().setTolerance(1);
+        armExtension.restoreFactoryDefaults();
+        armExtension_Follower.restoreFactoryDefaults();
+        armExtension.setInverted(false);
+        armExtension.setIdleMode(IdleMode.kBrake);
+        armExtension_Follower.setIdleMode(IdleMode.kBrake);
+
+        armEncoder.setPositionConversionFactor(1.5);
+
+        armEncoder.setVelocityConversionFactor((1.5) / 60.0);
+
+        armExtension_Follower.follow(armExtension, true);
+
+        // setGoal(3);
+        enable();
+        currentTarget = ExtensionPosition.In;
+        SmartDashboard.putData(getController());
+    }
+
     @Override
-    protected void useOutput(double output, State setpoint) {
-        // TODO: implement
+    protected void useOutput(double output, TrapezoidProfile.State setpoint) {
+        armExtension.set(output / armExtension.getBusVoltage());
     }
 
     @Override
     protected double getMeasurement() {
-        return 0;
-        // TODO: implement
+        return armEncoder.getPosition();
     }
 
-    public Command getQuasistaticSysidCommand(Direction direction){
-        return armRoutine.quasistatic(direction).finallyDo(()->{armExtension.set(0);});
+    public boolean atGoal() {
+        return getController().atGoal();
     }
 
-    public Command getDynamicSysidCommand(Direction direction){
-        return armRoutine.dynamic(direction).finallyDo(()->{armExtension.set(0);});
+    public Command extendToPosition(ExtensionPosition position) {
+        return sequence(
+                runOnce(() -> {
+                    currentTarget = position;
+                    setGoal(position.distance);
+                }),
+                waitUntil(this::atGoal));
+    }
+
+    public ExtensionPosition getPosition(){
+        return currentTarget;
+    }
+
+    @Override
+    public void periodic() {
+        super.periodic();
+        SmartDashboard.putNumber("Arm Length", getMeasurement());
+        SmartDashboard.putString("Arm Extension Position", currentTarget.name());
+        SmartDashboard.putBoolean("Arm Extension at Goal", atGoal());
     }
 }
