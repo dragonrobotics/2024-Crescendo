@@ -20,7 +20,7 @@ import edu.wpi.first.wpilibj2.command.ProfiledPIDSubsystem;
 public class ArmRotation extends ProfiledPIDSubsystem {
     
     public enum RotationAngle {
-        Down(0),
+        Down(1.63),
         Amp(90),
         Trap(110);
 
@@ -30,32 +30,43 @@ public class ArmRotation extends ProfiledPIDSubsystem {
         }
     }
 
-    CANSparkMax armRotation = new CANSparkMax(20, MotorType.kBrushless);
-    CANSparkMax armRotation_Follower = new CANSparkMax(24, MotorType.kBrushless);
+    CANSparkMax armRotation = new CANSparkMax(25, MotorType.kBrushless);
+    CANSparkMax armRotation_Follower = new CANSparkMax(20, MotorType.kBrushless);
 
     RelativeEncoder armEncoder = armRotation.getEncoder();
-    RotationAngle currentTarget = RotationAngle.Amp;
+    RotationAngle currentTarget = RotationAngle.Down;
 
     public ArmRotation() {
         super(//.64
-            new ProfiledPIDController(1.4, 0, 0, new Constraints(1600, 800))
+            new ProfiledPIDController(.64, 0, 0, new Constraints(400, 200))
             );
         getController().setTolerance(1);
-
+        SmartDashboard.putData("Arm Rotation PID", getController());
         armRotation.restoreFactoryDefaults();
         armRotation_Follower.restoreFactoryDefaults();
 
         armRotation.setIdleMode(IdleMode.kBrake);
         armRotation_Follower.setIdleMode(IdleMode.kBrake);
 
-        armEncoder.setPositionConversionFactor(90.0 / 34.0);
+        double conversionFactor = (360/337.5);
 
-        armEncoder.setVelocityConversionFactor((90.0 / 34.0) / 60.0);
+        armEncoder.setPositionConversionFactor(conversionFactor);
 
+        armEncoder.setVelocityConversionFactor((conversionFactor) / 60.0);
+        armEncoder.setPosition(1.63);
         armRotation_Follower.follow(armRotation, true);
-
+        armRotation.burnFlash();
+        armRotation_Follower.burnFlash();
         setGoal(currentTarget.angle);
         enable();
+    }
+
+    public void climbSpeed(){
+        getController().setConstraints(new Constraints(200, 50));
+    }
+
+    public void normalSpeed(){
+        getController().setConstraints(new Constraints(400, 200));
     }
 
     @Override

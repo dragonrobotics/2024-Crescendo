@@ -31,18 +31,21 @@ public class ArmExtension extends ProfiledPIDSubsystem {
             this.distance = distance;
         }
     }
-
+    
     CANSparkMax armExtension = new CANSparkMax(27, MotorType.kBrushless);
     CANSparkMax armExtension_Follower = new CANSparkMax(14, MotorType.kBrushless);
     double target = 0;
     RelativeEncoder armEncoder = armExtension.getEncoder();
     int callCount = 0;
     ExtensionPosition currentTarget;
-
+    
+        final double climbSpeed = 100;
+        final double normalSpeed = 200;
+        final double normalAcceleration = 50;
 
     public ArmExtension() {
         super(
-                new ProfiledPIDController(2, 0, 0, new Constraints(20, 6)));
+                new ProfiledPIDController(2, 0, 0, new Constraints(200, 50)));
 
         getController().setTolerance(1);
         armExtension.restoreFactoryDefaults();
@@ -50,13 +53,13 @@ public class ArmExtension extends ProfiledPIDSubsystem {
         armExtension.setInverted(false);
         armExtension.setIdleMode(IdleMode.kBrake);
         armExtension_Follower.setIdleMode(IdleMode.kBrake);
-
         armEncoder.setPositionConversionFactor(1.5);
 
         armEncoder.setVelocityConversionFactor((1.5) / 60.0);
 
         armExtension_Follower.follow(armExtension, true);
-
+        armExtension.burnFlash();
+        armExtension_Follower.burnFlash();
         // setGoal(3);
         enable();
         currentTarget = ExtensionPosition.In;
@@ -66,6 +69,14 @@ public class ArmExtension extends ProfiledPIDSubsystem {
     @Override
     protected void useOutput(double output, TrapezoidProfile.State setpoint) {
         armExtension.set(output / armExtension.getBusVoltage());
+    }
+
+    public void climbSpeed(){
+        getController().setConstraints(new Constraints(100, 25));
+    }
+
+    public void normalSpeed(){
+        getController().setConstraints(new Constraints(200, 50));
     }
 
     @Override

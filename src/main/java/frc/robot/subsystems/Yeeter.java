@@ -18,6 +18,8 @@ public class Yeeter extends SubsystemBase {
         shooterBottom.follow(shooterTop);
         shooterBottom.setIdleMode(IdleMode.kBrake);
         shooterTop.setIdleMode(IdleMode.kCoast);
+        shooterTop.burnFlash();
+        shooterBottom.burnFlash();
     }
 
     public void SetVoltage(double voltage) {

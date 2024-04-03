@@ -1,0 +1,16 @@
+{
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Auton Field": "Field2d",
+      "/SmartDashboard/Auton Position Selecter": "String Chooser",
+      "/SmartDashboard/Auton Selecter": "String Chooser",
+      "/SmartDashboard/Field": "Field2d",
+      "/SmartDashboard/Pigeon 2 (v6) [0]": "Gyro",
+      "/SmartDashboard/ProfiledPIDController[1]": "ProfiledPIDController"
+    }
+  },
+  "NetworkTables Info": {
+    "visible": true
+  }
+}

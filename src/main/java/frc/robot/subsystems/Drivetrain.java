@@ -8,7 +8,14 @@ import static java.lang.Math.signum;
 import java.io.File;
 import java.util.function.DoubleSupplier;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.ReplanningConfig;
+
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
@@ -29,6 +36,16 @@ public class Drivetrain extends SubsystemBase {
             System.exit(1);
         }
         zero();
+
+        AutoBuilder.configureHolonomic(() -> swerveDrive.getPose(), (Pose2d pose) -> swerveDrive.resetOdometry(pose),
+                () -> swerveDrive.getRobotVelocity(), (ChassisSpeeds speeds)->swerveDrive.drive(speeds),
+                new HolonomicPathFollowerConfig(maximumSpeed, maxRotationalSpeed, new ReplanningConfig()), () -> {
+                    var alliance = DriverStation.getAlliance();
+                    if (alliance.isPresent()) {
+                        return alliance.get() == DriverStation.Alliance.Red;
+                    }
+                    return false;
+                }, this);
     }
 
     public Command getDriveCommand(DoubleSupplier translationY, DoubleSupplier translationX,
@@ -38,13 +55,13 @@ public class Drivetrain extends SubsystemBase {
             double ySpeed = translationY.getAsDouble();
             double rSpeed = angularRotation.getAsDouble();
             xSpeed = xSpeed * xSpeed * signum(xSpeed) * maximumSpeed;
-            ySpeed = ySpeed * ySpeed * signum(ySpeed)  * maximumSpeed;
+            ySpeed = ySpeed * ySpeed * signum(ySpeed) * maximumSpeed;
             rSpeed = rSpeed * rSpeed * -signum(rSpeed) * maxRotationalSpeed;
             swerveDrive.drive(new Translation2d(xSpeed, ySpeed), rSpeed, fieldRelative, false);
         });
     }
 
-    public void zero(){
+    public void zero() {
         swerveDrive.zeroGyro();
     }
 }
