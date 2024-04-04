@@ -10140,12 +10140,6 @@
                                 {
                                     "type": "named",
                                     "data": {
-                                        "name": "Handoff"
-                                    }
-                                },
-                                {
-                                    "type": "named",
-                                    "data": {
                                         "name": "raiseArm"
                                     }
                                 },
