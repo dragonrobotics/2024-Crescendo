@@ -8,13 +8,11 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.PIDSubsystem;
 import edu.wpi.first.wpilibj2.command.ProfiledPIDSubsystem;
 
 public class ArmExtension extends ProfiledPIDSubsystem {
@@ -24,7 +22,7 @@ public class ArmExtension extends ProfiledPIDSubsystem {
         Amp(23),
         ClimbUp(Amp.distance),
         ClimbDown(0),
-        Trap(38);
+        Trap(40);
 
         public double distance;
         private ExtensionPosition(double distance){
@@ -32,8 +30,7 @@ public class ArmExtension extends ProfiledPIDSubsystem {
         }
     }
     
-    CANSparkMax armExtension = new CANSparkMax(27, MotorType.kBrushless);
-    CANSparkMax armExtension_Follower = new CANSparkMax(14, MotorType.kBrushless);
+    CANSparkMax armExtension = new CANSparkMax(14, MotorType.kBrushless);
     double target = 0;
     RelativeEncoder armEncoder = armExtension.getEncoder();
     int callCount = 0;
@@ -45,21 +42,17 @@ public class ArmExtension extends ProfiledPIDSubsystem {
 
     public ArmExtension() {
         super(
-                new ProfiledPIDController(2, 0, 0, new Constraints(200, 50)));
+                new ProfiledPIDController(2, 0, 0, new Constraints(400, 100)));
 
-        getController().setTolerance(1);
+        getController().setTolerance(2);
         armExtension.restoreFactoryDefaults();
-        armExtension_Follower.restoreFactoryDefaults();
         armExtension.setInverted(false);
         armExtension.setIdleMode(IdleMode.kBrake);
-        armExtension_Follower.setIdleMode(IdleMode.kBrake);
-        armEncoder.setPositionConversionFactor(1.5);
+        armEncoder.setPositionConversionFactor(.47);
 
         armEncoder.setVelocityConversionFactor((1.5) / 60.0);
 
-        armExtension_Follower.follow(armExtension, true);
         armExtension.burnFlash();
-        armExtension_Follower.burnFlash();
         // setGoal(3);
         enable();
         currentTarget = ExtensionPosition.In;
@@ -72,11 +65,11 @@ public class ArmExtension extends ProfiledPIDSubsystem {
     }
 
     public void climbSpeed(){
-        getController().setConstraints(new Constraints(100, 25));
+        getController().setConstraints(new Constraints(25, 10));
     }
 
     public void normalSpeed(){
-        getController().setConstraints(new Constraints(200, 50));
+        getController().setConstraints(new Constraints(400, 100));
     }
 
     @Override
@@ -107,5 +100,9 @@ public class ArmExtension extends ProfiledPIDSubsystem {
         SmartDashboard.putNumber("Arm Length", getMeasurement());
         SmartDashboard.putString("Arm Extension Position", currentTarget.name());
         SmartDashboard.putBoolean("Arm Extension at Goal", atGoal());
+    }
+
+    public void setBrake(boolean b) {
+        armExtension.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
     }
 }

@@ -7,9 +7,6 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
-
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
@@ -30,12 +27,13 @@ public class Intake extends ProfiledPIDSubsystem {
     private CANSparkMax intakeToggle = new CANSparkMax(12, MotorType.kBrushless);
     private CANSparkMax intakeToggle2 = new CANSparkMax(17, MotorType.kBrushless);
 
-    private RelativeEncoder toggleEncoder = intakeToggle2.getEncoder();
+    private AbsoluteEncoder toggleEncoder = intakeToggle2.getAbsoluteEncoder();
 
     public enum intakePosition {
-        up(0),
-        none(0),
-        down(135);
+        up(14),
+        raised(30),
+        none(13),
+        down(134);
 
         public double angle;
 
@@ -54,15 +52,17 @@ public class Intake extends ProfiledPIDSubsystem {
         intakeToggle2.follow(intakeToggle, true);
         intakePull.follow(intakePull2);
         getController().setTolerance(2);
+        getController().enableContinuousInput(0, 360);
         intakeToggle.setIdleMode(IdleMode.kCoast);
         intakeToggle2.setIdleMode(IdleMode.kCoast);
-
+        
         intakeToggle.setInverted(false);
-
-        toggleEncoder.setPositionConversionFactor(135.0/28.0);
-        toggleEncoder.setPosition(0);
+        
+        toggleEncoder.setPositionConversionFactor(360); // 135.0/28.0
+        toggleEncoder.setInverted(true);
         intakeToggle.burnFlash();
         intakeToggle2.burnFlash();
+        setGoal(intakePosition.up.angle);
     }
 
     public double GetIntakeAngle() {
@@ -139,5 +139,12 @@ public class Intake extends ProfiledPIDSubsystem {
     @Override
     protected double getMeasurement() {
         return toggleEncoder.getPosition();
+    }
+
+    public void setBrake(boolean b) {
+        
+        intakeToggle.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
+
+        intakeToggle2.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
     }
 }

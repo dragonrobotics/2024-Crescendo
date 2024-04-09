@@ -8,10 +8,6 @@ import static java.lang.Math.signum;
 import java.io.File;
 import java.util.function.DoubleSupplier;
 
-import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
-import com.pathplanner.lib.util.ReplanningConfig;
-
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -21,10 +17,14 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import swervelib.SwerveDrive;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.ReplanningConfig;
+
 public class Drivetrain extends SubsystemBase {
     private final double maximumSpeed = 4.5;
     private final double maxRotationalSpeed = 6;
-    private SwerveDrive swerveDrive;
+    public SwerveDrive swerveDrive;
 
     public Drivetrain() {
         swervelib.telemetry.SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
@@ -35,6 +35,7 @@ public class Drivetrain extends SubsystemBase {
             e.printStackTrace();
             System.exit(1);
         }
+        swerveDrive.headingCorrection = true;
         zero();
 
         AutoBuilder.configureHolonomic(() -> swerveDrive.getPose(), (Pose2d pose) -> swerveDrive.resetOdometry(pose),

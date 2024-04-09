@@ -8,8 +8,6 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 
-import edu.wpi.first.math.controller.ArmFeedforward;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
@@ -20,7 +18,8 @@ import edu.wpi.first.wpilibj2.command.ProfiledPIDSubsystem;
 public class ArmRotation extends ProfiledPIDSubsystem {
     
     public enum RotationAngle {
-        Down(1.63),
+        Down(0),
+        Raised(11),
         Amp(90),
         Trap(110);
 
@@ -104,5 +103,12 @@ public class ArmRotation extends ProfiledPIDSubsystem {
         SmartDashboard.putNumber("Arm Angle", getMeasurement());
         SmartDashboard.putString("Arm Rotation Position", getRotation().name());
         SmartDashboard.putBoolean("Arm At Goal", atGoal());
+    }
+
+    public void setBrake(boolean b) {
+
+        armRotation.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
+
+        armRotation_Follower.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
     }
 }
