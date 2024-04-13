@@ -9,6 +9,7 @@ import java.io.File;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -19,11 +20,12 @@ import swervelib.SwerveDrive;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 
 public class Drivetrain extends SubsystemBase {
-    private final double maximumSpeed = 4.5;
-    private final double maxRotationalSpeed = 6;
+    private final double maximumSpeed = 3.66;
+    private final double maxRotationalSpeed = 3;
     public SwerveDrive swerveDrive;
 
     public Drivetrain() {
@@ -39,8 +41,12 @@ public class Drivetrain extends SubsystemBase {
         zero();
 
         AutoBuilder.configureHolonomic(() -> swerveDrive.getPose(), (Pose2d pose) -> swerveDrive.resetOdometry(pose),
-                () -> swerveDrive.getRobotVelocity(), (ChassisSpeeds speeds)->swerveDrive.drive(speeds),
-                new HolonomicPathFollowerConfig(maximumSpeed, maxRotationalSpeed, new ReplanningConfig()), () -> {
+                () -> swerveDrive.getRobotVelocity(), (ChassisSpeeds speeds) -> swerveDrive.setChassisSpeeds(speeds),
+                new HolonomicPathFollowerConfig(
+                    new PIDConstants(0),
+                    new PIDConstants(0),  
+                maximumSpeed, 2, 
+                new ReplanningConfig()), () -> {
                     var alliance = DriverStation.getAlliance();
                     if (alliance.isPresent()) {
                         return alliance.get() == DriverStation.Alliance.Red;
@@ -48,9 +54,9 @@ public class Drivetrain extends SubsystemBase {
                     return false;
                 }, this);
     }
-
+    
     public Command getDriveCommand(DoubleSupplier translationY, DoubleSupplier translationX,
-            DoubleSupplier angularRotation, boolean fieldRelative) {
+    DoubleSupplier angularRotation, boolean fieldRelative) {
         return run(() -> {
             double xSpeed = translationX.getAsDouble();
             double ySpeed = translationY.getAsDouble();

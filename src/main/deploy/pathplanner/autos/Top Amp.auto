@@ -1,0 +1,49 @@
+{
+  "version": 1.0,
+  "startingPose": {
+    "position": {
+      "x": 1.024419903755188,
+      "y": 6.544432640075684
+    },
+    "rotation": 58.67130208515646
+  },
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "named",
+          "data": {
+            "name": "Shoot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Top Amp 3.1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Amp"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Top Amp 3.2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Amp"
+          }
+        }
+      ]
+    }
+  },
+  "folder": null,
+  "choreoAuto": true
+}

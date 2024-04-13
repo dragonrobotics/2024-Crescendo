@@ -31,7 +31,7 @@ public class Intake extends ProfiledPIDSubsystem {
 
     public enum intakePosition {
         up(14),
-        raised(30),
+        raised(46), // 30 // 37
         none(13),
         down(134);
 

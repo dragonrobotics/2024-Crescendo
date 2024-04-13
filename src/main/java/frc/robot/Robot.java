@@ -4,14 +4,18 @@
 
 package frc.robot;
 
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -23,13 +27,16 @@ import frc.robot.subsystems.ArmRotation;
 import frc.robot.subsystems.ArmExtension.ExtensionPosition;
 import frc.robot.subsystems.ArmRotation.RotationAngle;
 import frc.robot.subsystems.Intake.intakePosition;
-import monologue.Logged;
-import monologue.Monologue;
+import frc.logging.Logger;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
-public class Robot extends TimedRobot implements Logged {
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.path.PathPlannerPath;
+
+public class Robot extends TimedRobot {
   private ArmExtension armExtension = new ArmExtension();
   private ArmRotation armRotation = new ArmRotation();
   private CommandXboxController controller = new CommandXboxController(0);
@@ -37,7 +44,7 @@ public class Robot extends TimedRobot implements Logged {
   private Yeeter yeeter = new Yeeter();
   private Intake intake = new Intake();
 
-  private SendableChooser<Command> autonPicker = new SendableChooser<>();
+  private SendableChooser<Command> autonSelector = null;
   private GenericEntry brakeModeDisable = Shuffleboard.getTab("Autonomous").add("Disable Brake Mode", false).getEntry();
 
   private Command autonCommand = none();
@@ -71,10 +78,13 @@ public class Robot extends TimedRobot implements Logged {
             }),
             either(
                 sequence(armExtension.extendToPosition(ExtensionPosition.In),
-                    armRotation.rotateToPosition(RotationAngle.Down)),
+                    armRotation.rotateToPosition(RotationAngle.Down),
+                    intake.SetIntakePosition(intakePosition.up)),
                 none(), () -> {
                   return armRotation.getRotation() == RotationAngle.Amp;
-                })),
+                })).finallyDo(()->{
+                  yeeter.Stop();
+                }),
         () -> {
           return intake.hasNote();
         });
@@ -96,8 +106,7 @@ public class Robot extends TimedRobot implements Logged {
         runOnce(() -> {
           intake.stopIntake();
           yeeter.Stop();
-        }, intake, yeeter)
-        ).withInterruptBehavior(InterruptionBehavior.kCancelIncoming),
+        }, intake, yeeter)).withInterruptBehavior(InterruptionBehavior.kCancelIncoming),
         none(), () -> {
           return intake.hasNote();
         });
@@ -105,64 +114,8 @@ public class Robot extends TimedRobot implements Logged {
 
   @Override
   public void robotInit() {
-    autonPicker.addOption("None", none());
-    autonPicker.addOption("Shoot Stay", getShootCommand());
-    autonPicker.addOption("Shoot Leave",
-      sequence(
-        getShootCommand(),
-        deadline(
-        waitSeconds(2), 
-        run(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(.75, 0), .4, true, false);
-        }, m_driveTrain)),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(0, 0), 0, true, false);
-        }, m_driveTrain)
-      )
-    );
-    autonPicker.addOption("Shoot Leave Left",
-      sequence(
-        getShootCommand(),
-        run(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(.75, -.75), .4, true, false);
-        }, m_driveTrain),
-        waitSeconds(2),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(0, 0), 0, true, false);
-        }, m_driveTrain)
-      )
-    );
-    autonPicker.addOption("Shoot Leave Right",
-      sequence(
-        getShootCommand(),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(.75, .75), .4, true, false);
-        }, m_driveTrain),
-        waitSeconds(2),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(0, 0), 0, true, false);
-        }, m_driveTrain)
-      )
-    );
-    autonPicker.addOption("Shoot Leave Intake Come Back Shoot?",
-      sequence(
-        getShootCommand(),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(.75, 0), 0, true, false);
-        }, m_driveTrain),
-        intake.intakeNote(controller),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(-.75, 0), 0, true, false);
-        }, m_driveTrain),
-        waitSeconds(3),
-        runOnce(()->{
-          m_driveTrain.swerveDrive.drive(new Translation2d(0, 0), 0, true, false);
-        }, m_driveTrain),
-        getShootCommand()
-      )
-    );
-
-    SmartDashboard.putData("Auton Picker", autonPicker);
+    Logger.AutoLog(this);
+    configureAuton();
 
     new Trigger(() -> {
       return brakeModeDisable.getBoolean(false);
@@ -236,40 +189,44 @@ public class Robot extends TimedRobot implements Logged {
         sequence(
             armRotation.rotateToPosition(RotationAngle.Trap),
             sequence(
-              runOnce(()->{
-                yeeter.SetVoltage(-.75);
-              }),
-              waitUntil(()->{
-                return !yeeter.hasNote();
-              }).withTimeout(1)
-            ).finallyDo(()->{
-              yeeter.Stop();
-            }),
+                runOnce(() -> {
+                  yeeter.SetVoltage(-.75);
+                }),
+                waitUntil(() -> {
+                  return !yeeter.hasNote();
+                }).withTimeout(1)).finallyDo(() -> {
+                  yeeter.Stop();
+                }),
             armExtension.extendToPosition(ExtensionPosition.Trap)));
-
-    Monologue.setupMonologue(this, "Robot", false, true);
 
   }
 
   void configureAuton() {
-
+    NamedCommands.registerCommand("Shoot", getShootCommand().asProxy());
+    SmartDashboard.putData(intake);
+    autonSelector = AutoBuilder.buildAutoChooser();    
+    SmartDashboard.putData("Auton Chooser", autonSelector);
   }
-
+  
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-    Monologue.updateAll();
-
+    
   }
-
+  
   @Override
   public void autonomousInit() {
-    autonCommand = autonPicker.getSelected();
+    Command cmd = intake.intakeNote(controller).withInterruptBehavior(InterruptionBehavior.kCancelSelf);
+    intake.setDefaultCommand(cmd);
+    autonCommand = autonSelector.getSelected();
     autonCommand.schedule();
   }
 
   @Override
   public void teleopInit() {
+    Command cmd = none();
+    cmd.addRequirements(intake);
+    intake.setDefaultCommand(cmd);
     autonCommand.cancel();
 
   }

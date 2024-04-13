@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 import static edu.wpi.first.wpilibj2.command.Commands.waitUntil;
 
+
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkBase.IdleMode;
@@ -30,6 +31,7 @@ public class ArmExtension extends ProfiledPIDSubsystem {
         }
     }
     
+
     CANSparkMax armExtension = new CANSparkMax(14, MotorType.kBrushless);
     double target = 0;
     RelativeEncoder armEncoder = armExtension.getEncoder();

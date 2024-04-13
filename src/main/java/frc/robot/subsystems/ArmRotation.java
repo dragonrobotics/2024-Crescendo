@@ -19,7 +19,7 @@ public class ArmRotation extends ProfiledPIDSubsystem {
     
     public enum RotationAngle {
         Down(0),
-        Raised(11),
+        Raised(23), // 11 // 22
         Amp(90),
         Trap(110);
 
