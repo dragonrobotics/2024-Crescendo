@@ -2,10 +2,10 @@
   "version": 1.0,
   "startingPose": {
     "position": {
-      "x": 1.024419903755188,
-      "y": 6.544432640075684
+      "x": 1.4490842819213867,
+      "y": 5.491290092468262
     },
-    "rotation": 58.67130208515646
+    "rotation": 1.2850016079932879e-31
   },
   "command": {
     "type": "sequential",
@@ -20,25 +20,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Top Amp 3.1"
+            "pathName": "Middle 3 Amp.1"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Amp"
+            "name": "Shoot"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Top Amp 3.2"
+            "pathName": "Middle 3 Amp.2"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Amp"
+            "name": "Shoot"
           }
         }
       ]

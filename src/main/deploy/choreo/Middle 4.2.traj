@@ -433,52 +433,5 @@
       "timestamp": 3.4121241208354967
     }
   ],
-  "eventMarkers": [
-    {
-      "timestamp": 0,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "Shoot"
-        }
-      }
-    },
-    {
-      "timestamp": 0.8726599931692771,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "intakeNote"
-        }
-      }
-    },
-    {
-      "timestamp": 3.4121241208354967,
-      "command": {
-        "type": "sequential",
-        "data": {
-          "commands": [
-            {
-              "type": "named",
-              "data": {
-                "name": "Shoot"
-              }
-            },
-            {
-              "type": "wait",
-              "data": {
-                "waitTime": 1.2
-              }
-            },
-            {
-              "type": "named",
-              "data": {
-                "name": "intakeNote"
-              }
-            }
-          ]
-        }
-      }
-    }
-  ]
+  "eventMarkers": []
 }

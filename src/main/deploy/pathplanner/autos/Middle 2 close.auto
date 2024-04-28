@@ -2,10 +2,10 @@
   "version": 1.0,
   "startingPose": {
     "position": {
-      "x": 1.2541749477386477,
-      "y": 6.5396409034729
+      "x": 1.4490842819213867,
+      "y": 5.491290092468262
     },
-    "rotation": 46.54814822910152
+    "rotation": 1.2850016079932879e-31
   },
   "command": {
     "type": "sequential",
@@ -20,7 +20,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Top 2.1"
+            "pathName": "Middle 3 Amp.1"
           }
         },
         {

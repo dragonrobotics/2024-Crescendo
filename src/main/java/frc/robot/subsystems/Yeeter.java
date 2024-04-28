@@ -16,7 +16,6 @@ public class Yeeter extends SubsystemBase {
 
 
     public Yeeter() {
-        SmartDashboard.putData("Shooter Has Note", beamBreak);
         shooterBottom.restoreFactoryDefaults();
         shooterTop.restoreFactoryDefaults();
         shooterBottom.follow(shooterTop);
@@ -25,9 +24,13 @@ public class Yeeter extends SubsystemBase {
         shooterTop.burnFlash();
         shooterBottom.burnFlash();
     }
-
+    @Override
+    public void periodic(){
+        SmartDashboard.putBoolean("Shooter Has Note", !beamBreak.get());
+        SmartDashboard.putNumber("Shooter Enabled", shooterTop.get()*12);
+    }
     public void SetVoltage(double voltage) {
-        shooterTop.setVoltage(voltage);
+        shooterTop.set(voltage/12);
     }
 
     public void Stop() {

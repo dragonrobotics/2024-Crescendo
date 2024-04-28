@@ -31,9 +31,10 @@ public class Intake extends ProfiledPIDSubsystem {
 
     public enum intakePosition {
         up(14),
-        raised(46), // 30 // 37
+        raised(35), // 30 // 37 // 46
         none(13),
-        down(134);
+        down(130),
+        custom(14);
 
         public double angle;
 
@@ -42,16 +43,20 @@ public class Intake extends ProfiledPIDSubsystem {
         }
     }
 
+    intakePosition currentTarget = intakePosition.up;
+
     public Intake() {
         super(new ProfiledPIDController(.14, 0, 0, new Constraints(1000, 1000)));
         SmartDashboard.putData("Intake Controller", getController());
         intakePull.restoreFactoryDefaults();
-        intakePull2.restoreFactoryDefaults();
+        intakePull2.restoreFactoryDefaults();       
+
+
         intakeToggle.restoreFactoryDefaults();
         intakeToggle2.restoreFactoryDefaults();
         intakeToggle2.follow(intakeToggle, true);
         intakePull.follow(intakePull2);
-        getController().setTolerance(2);
+        getController().setTolerance(5);
         getController().enableContinuousInput(0, 360);
         intakeToggle.setIdleMode(IdleMode.kCoast);
         intakeToggle2.setIdleMode(IdleMode.kCoast);
@@ -78,16 +83,12 @@ public class Intake extends ProfiledPIDSubsystem {
             return intakePosition.none;
     }
 
-    public boolean IntakeStopped() {
-        return abs(toggleEncoder.getVelocity()) < 5;
-    }
-
     public boolean hasNote() {
         return !beamBreak.get();
     }
 
     public Command intakeNote(CommandXboxController controller) {
-        return sequence(
+        return either(sequence(
                 SetIntakePosition(intakePosition.down),
                 runOnce(() -> {
                     setVoltage(6);
@@ -105,11 +106,12 @@ public class Intake extends ProfiledPIDSubsystem {
                 .finallyDo(() -> {
                     controller.getHID().setRumble(RumbleType.kBothRumble, 0);
                     stopIntake();
-                });
+                }), none(), ()->{return !hasNote();});
     }
 
     public Command SetIntakePosition(intakePosition position) {
         return runOnce(() -> {
+            currentTarget = position;
             setGoal(position.angle);
         }).andThen(waitUntil(() -> {
             return getController().atGoal();
@@ -129,6 +131,8 @@ public class Intake extends ProfiledPIDSubsystem {
         super.periodic();
         SmartDashboard.putNumber("Intake Angle", toggleEncoder.getPosition());
         SmartDashboard.putBoolean("Intake Has Note", hasNote());
+        SmartDashboard.putString("Arm Rotation Position", currentTarget.name());
+        SmartDashboard.putBoolean("Arm At Goal", getController().atGoal());
     }
 
     @Override
@@ -146,5 +150,10 @@ public class Intake extends ProfiledPIDSubsystem {
         intakeToggle.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
 
         intakeToggle2.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
+    }
+
+    public Command rotateToCustomAngle(double d) {
+        intakePosition.custom.angle = d;
+        return SetIntakePosition(intakePosition.custom);
     }
 }

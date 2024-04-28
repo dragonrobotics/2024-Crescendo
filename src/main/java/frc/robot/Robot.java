@@ -4,11 +4,17 @@
 
 package frc.robot;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -31,6 +37,14 @@ import frc.logging.Logger;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
+
+import java.util.Optional;
+import java.util.Set;
+
+import org.photonvision.EstimatedRobotPose;
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonPoseEstimator;
+import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -60,7 +74,7 @@ public class Robot extends TimedRobot {
                 }, yeeter)),
             runOnce(() -> {
               intake.setVoltage(12);
-            }, intake), waitSeconds(1),
+            }, intake), waitSeconds(.5),
             parallel(
                 intake.SetIntakePosition(intakePosition.up),
                 armRotation.rotateToPosition(RotationAngle.Down)))
@@ -82,9 +96,10 @@ public class Robot extends TimedRobot {
                     intake.SetIntakePosition(intakePosition.up)),
                 none(), () -> {
                   return armRotation.getRotation() == RotationAngle.Amp;
-                })).finallyDo(()->{
-                  yeeter.Stop();
-                }),
+                }))
+            .finallyDo(() -> {
+              yeeter.Stop();
+            }),
         () -> {
           return intake.hasNote();
         });
@@ -114,8 +129,11 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
+    SmartDashboard.putNumberArray("Angles", new double[]{18, 37} );
     Logger.AutoLog(this);
     configureAuton();
+
+    SetupLogging();
 
     new Trigger(() -> {
       return brakeModeDisable.getBoolean(false);
@@ -190,30 +208,47 @@ public class Robot extends TimedRobot {
             armRotation.rotateToPosition(RotationAngle.Trap),
             sequence(
                 runOnce(() -> {
-                  yeeter.SetVoltage(-.75);
+                  yeeter.SetVoltage(-.65);
                 }),
                 waitUntil(() -> {
                   return !yeeter.hasNote();
-                }).withTimeout(1)).finallyDo(() -> {
+                }).withTimeout(.5)).finallyDo(() -> {
                   yeeter.Stop();
                 }),
             armExtension.extendToPosition(ExtensionPosition.Trap)));
 
+    
+    test().and(controller.back()).onTrue(
+      runOnce(()->{
+        Filesystem.getDeployDirectory().delete();
+      })
+    );
+  }
+
+  private double[] getAnglesForDistance(double distFromSpeaker) {
+    double[] ret = SmartDashboard.getNumberArray("Angles", new double[]{0, 14});
+    SmartDashboard.putNumber("Shot Distance", distFromSpeaker);
+    return ret;
   }
 
   void configureAuton() {
     NamedCommands.registerCommand("Shoot", getShootCommand().asProxy());
+    NamedCommands.registerCommand("Amp", sequence(
+        getHandoffCommand(),
+        armRotation.rotateToPosition(RotationAngle.Amp),
+        armExtension.extendToPosition(ExtensionPosition.Amp),
+        getShootCommand()
+        ));
     SmartDashboard.putData(intake);
-    autonSelector = AutoBuilder.buildAutoChooser();    
+    autonSelector = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auton Chooser", autonSelector);
   }
-  
+
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-    
   }
-  
+ 
   @Override
   public void autonomousInit() {
     Command cmd = intake.intakeNote(controller).withInterruptBehavior(InterruptionBehavior.kCancelSelf);
@@ -229,5 +264,10 @@ public class Robot extends TimedRobot {
     intake.setDefaultCommand(cmd);
     autonCommand.cancel();
 
+  }
+
+  public void SetupLogging(){
+    DataLogManager.start();
+    DriverStation.startDataLog(DataLogManager.getLog());
   }
 }

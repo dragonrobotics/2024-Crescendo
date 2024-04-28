@@ -19,9 +19,10 @@ public class ArmRotation extends ProfiledPIDSubsystem {
     
     public enum RotationAngle {
         Down(0),
-        Raised(23), // 11 // 22
+        Raised(13), // 11 // 22 // 23
         Amp(90),
-        Trap(110);
+        Trap(110),
+        Custom(0);
 
         public double angle;
         private RotationAngle(double angle){
@@ -110,5 +111,11 @@ public class ArmRotation extends ProfiledPIDSubsystem {
         armRotation.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
 
         armRotation_Follower.setIdleMode(b ? IdleMode.kBrake : IdleMode.kCoast);
+    }
+
+    public Command rotateToCustomAngle(double d) {
+        currentTarget = RotationAngle.Custom;
+        currentTarget.angle = d;
+        return rotateToPosition(currentTarget);
     }
 }
